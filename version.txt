@@ -1,0 +1,200 @@
+MPRW114                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW115                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW052                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW053                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+JPRW015                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: )
+                                                   
+JPRW016                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: )
+                                                   
+MPRW132                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SDEW032                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SDEW033                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW227                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW228                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW082                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW083                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW266                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW265                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW086                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW085                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPPW026                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPPW055                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW066                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW067                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+MPRW105                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW026                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SPRW027                                                                                                                          Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046061) - 14.0.3480.1 (X64) 
+	Sep 19 2024 17:34:59 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+JUCCEAW1                                                                                                                         Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+JUCCEAW2                                                                                                                         Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+DUCCEAW1                                                                                                                         Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+DUCCEAW2                                                                                                                         Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+JUCCELGRA                                                                                                                        Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+DUCCELGRB                                                                                                                        Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5042215) - 14.0.3475.1 (X64) 
+	Jul 30 2024 21:05:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+TESTSQL2012\TEST                                                                                                                 Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+SCCM-SQL-TEMP                                                                                                                    Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+RUH-006-CC-002                                                                                                                   Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+RUH-002-CNS-103                                                                                                                  Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+RUH002RET001-N                                                                                                                   Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+RUH-006-DB-001                                                                                                                   Microsoft SQL Server 2016 (SP3-CU1-GDR) (KB5029187) - 13.0.7029.3 (X64) 
+	Aug 16 2023 19:44:44 
+	Copyright (c) Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                            
+EECSARUH6HOW043                                                                                                                  Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+EECSARUH6HOW156                                                                                                                  Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+EECSARUH6HOW157                                                                                                                  Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
+EECSARUH2HOW885                                                                                                                  Microsoft SQL Server 2017 (RTM-CU31-GDR) (KB5046858) - 14.0.3485.1 (X64) 
+	Oct 17 2024 16:14:54 
+	Copyright (C) 2017 Microsoft Corporation
+	Enterprise Edition: Core-based Licensing (64-bit) on Windows Server 2016 Standard 10.0 <X64> (Build 14393: ) (Hypervisor)
+                                      
