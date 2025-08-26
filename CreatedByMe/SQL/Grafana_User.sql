@@ -1,8 +1,8 @@
-USE master
-GO
 -- =====================================================
 -- Grafana User Creation Script - Always On AG Aware
 -- =====================================================
+USE [master];
+
 -- Parameters (set these before running)
 DECLARE @UserSID VARBINARY(85) = 0x87B135D2146D3840B229D12CCEB3DF10;  -- Default Grafana User SID
 DECLARE @ShowSID BIT = 0;               -- Set to 1 to display SID after creation
@@ -217,8 +217,10 @@ END
 EXEC sp_executesql @msdbSQL;
 
 -- =====================================================
--- User Creation in User Databases (AG-aware)
+-- User Creation in User Databases (AG-aware) using Cursor
 -- =====================================================
+USE [master];
+
 IF @AGRole = 'SECONDARY'
 BEGIN
     PRINT 'Secondary replica detected - only processing NON-AG databases...';
@@ -229,62 +231,81 @@ BEGIN
     PRINT 'Creating users in all user databases...';
 END
 
-DECLARE @sql NVARCHAR(MAX) = '';
+DECLARE @DatabaseName NVARCHAR(128);
 DECLARE @dbCount INT = 0;
 DECLARE @skippedAGDbs INT = 0;
+DECLARE @ProcessSQL NVARCHAR(MAX);
 
--- Build the dynamic SQL based on AG role
-IF @AGRole = 'SECONDARY'
+-- Create cursor based on AG role
+DECLARE db_cursor CURSOR FOR
+SELECT d.name
+FROM sys.databases d
+WHERE d.database_id > 4  -- Skip system databases
+    AND d.state = 0      -- Only online databases  
+    AND d.name NOT IN ('tempdb')
+    AND (
+        @AGRole != 'SECONDARY' OR  -- If not secondary, process all
+        NOT EXISTS (              -- If secondary, exclude AG databases
+            SELECT 1 
+            FROM sys.availability_databases_cluster adc
+            WHERE adc.database_name = d.name
+        )
+    );
+
+OPEN db_cursor;
+FETCH NEXT FROM db_cursor INTO @DatabaseName;
+
+WHILE @@FETCH_STATUS = 0
 BEGIN
-    -- On secondary: only process databases that are NOT in any AG
-    SELECT @sql = @sql + 
-    'USE [' + d.name + '];
-    DECLARE @UserSID_' + REPLACE(d.name, '-', '_') + ' VARBINARY(85) = NULL;
-    DECLARE @LoginSID_' + REPLACE(d.name, '-', '_') + ' VARBINARY(85);
-    DECLARE @IsOrphan_' + REPLACE(d.name, '-', '_') + ' BIT = 0;
+    SET @ProcessSQL = '
+    USE [' + @DatabaseName + '];
+    
+    DECLARE @UserSID VARBINARY(85) = NULL;
+    DECLARE @LoginSID VARBINARY(85);
     
     -- Get current login SID
-    SELECT @LoginSID_' + REPLACE(d.name, '-', '_') + ' = sid FROM sys.server_principals WHERE name = ''Grafana_User'';
+    SELECT @LoginSID = sid FROM sys.server_principals WHERE name = ''Grafana_User'';
     
     -- Check if user exists and get its SID
-    SELECT @UserSID_' + REPLACE(d.name, '-', '_') + ' = dp.sid
+    SELECT @UserSID = dp.sid
     FROM sys.database_principals dp 
     WHERE dp.name = ''Grafana_User'' AND dp.type = ''S'';
     
     -- Handle orphaned user
-    IF @UserSID_' + REPLACE(d.name, '-', '_') + ' IS NOT NULL AND @UserSID_' + REPLACE(d.name, '-', '_') + ' != @LoginSID_' + REPLACE(d.name, '-', '_') + '
+    IF @UserSID IS NOT NULL AND @UserSID != @LoginSID
     BEGIN
-        PRINT ''  - Found orphaned user in ' + d.name + ' - fixing...'';
+        PRINT ''  - Found orphaned user in ' + @DatabaseName + ' - fixing...'';
         DROP USER [Grafana_User];
-        SET @UserSID_' + REPLACE(d.name, '-', '_') + ' = NULL;
+        SET @UserSID = NULL;
     END
-    ELSE IF @UserSID_' + REPLACE(d.name, '-', '_') + ' IS NOT NULL
+    ELSE IF @UserSID IS NOT NULL
     BEGIN
-        PRINT ''  - User already exists with correct SID in: ' + d.name + ''';
+        PRINT ''  - User already exists with correct SID in: ' + @DatabaseName + ''';
     END
     
     -- Create user if needed
-    IF @UserSID_' + REPLACE(d.name, '-', '_') + ' IS NULL
+    IF @UserSID IS NULL
     BEGIN
-        PRINT ''  - Adding user to standalone database: ' + d.name + ''';
+        PRINT ''  - Adding user to database: ' + @DatabaseName + ''';
         CREATE USER [Grafana_User] FOR LOGIN [Grafana_User];
         ALTER ROLE [db_datareader] ADD MEMBER [Grafana_User];
         GRANT VIEW DATABASE STATE TO [Grafana_User];
     END
-    ',
-    @dbCount = @dbCount + 1
-    FROM sys.databases d
-    WHERE d.database_id > 4  -- Skip system databases
-        AND d.state = 0      -- Only online databases
-        AND d.name NOT IN ('tempdb')
-        AND NOT EXISTS (
-            -- Exclude databases that are in any AG
-            SELECT 1 
-            FROM sys.availability_databases_cluster adc
-            WHERE adc.database_name = d.name
-        );
-        
-    -- Count skipped AG databases
+    ';
+    
+    -- Execute the SQL for this database
+    EXEC sp_executesql @ProcessSQL;
+    
+    SET @dbCount = @dbCount + 1;
+    FETCH NEXT FROM db_cursor INTO @DatabaseName;
+END
+
+CLOSE db_cursor;
+DEALLOCATE db_cursor;
+
+-- Count skipped AG databases if on secondary
+IF @AGRole = 'SECONDARY'
+BEGIN
     SELECT @skippedAGDbs = COUNT(*)
     FROM sys.databases d
     WHERE d.database_id > 4 
@@ -296,69 +317,17 @@ BEGIN
             WHERE adc.database_name = d.name
         );
 END
-ELSE
-BEGIN
-    -- On primary or standalone: process all databases with orphan detection
-    SELECT @sql = @sql + 
-    'USE [' + name + '];
-    DECLARE @UserSID_' + REPLACE(name, '-', '_') + ' VARBINARY(85) = NULL;
-    DECLARE @LoginSID_' + REPLACE(name, '-', '_') + ' VARBINARY(85);
-    
-    -- Get current login SID
-    SELECT @LoginSID_' + REPLACE(name, '-', '_') + ' = sid FROM sys.server_principals WHERE name = ''Grafana_User'';
-    
-    -- Check if user exists and get its SID
-    SELECT @UserSID_' + REPLACE(name, '-', '_') + ' = dp.sid
-    FROM sys.database_principals dp 
-    WHERE dp.name = ''Grafana_User'' AND dp.type = ''S'';
-    
-    -- Handle orphaned user
-    IF @UserSID_' + REPLACE(name, '-', '_') + ' IS NOT NULL AND @UserSID_' + REPLACE(name, '-', '_') + ' != @LoginSID_' + REPLACE(name, '-', '_') + '
-    BEGIN
-        PRINT ''  - Found orphaned user in ' + name + ' - fixing...'';
-        DROP USER [Grafana_User];
-        SET @UserSID_' + REPLACE(name, '-', '_') + ' = NULL;
-    END
-    ELSE IF @UserSID_' + REPLACE(name, '-', '_') + ' IS NOT NULL
-    BEGIN
-        PRINT ''  - User already exists with correct SID in: ' + name + ''';
-    END
-    
-    -- Create user if needed
-    IF @UserSID_' + REPLACE(name, '-', '_') + ' IS NULL
-    BEGIN
-        PRINT ''  - Adding user to database: ' + name + ''';
-        CREATE USER [Grafana_User] FOR LOGIN [Grafana_User];
-        ALTER ROLE [db_datareader] ADD MEMBER [Grafana_User];
-        GRANT VIEW DATABASE STATE TO [Grafana_User];
-    END
-    ',
-    @dbCount = @dbCount + 1
-    FROM sys.databases 
-    WHERE database_id > 4  -- Skip system databases
-        AND state = 0      -- Only online databases
-        AND name NOT IN ('tempdb');
-END
 
+-- Report results
 IF @AGRole = 'SECONDARY'
 BEGIN
-    PRINT 'Processing ' + CAST(@dbCount AS VARCHAR(10)) + ' standalone databases...';
+    PRINT 'Processing completed: ' + CAST(@dbCount AS VARCHAR(10)) + ' standalone databases processed.';
     IF @skippedAGDbs > 0
-        PRINT 'Skipping ' + CAST(@skippedAGDbs AS VARCHAR(10)) + ' AG databases (will be synced from primary)...';
+        PRINT 'Skipped ' + CAST(@skippedAGDbs AS VARCHAR(10)) + ' AG databases (will be synced from primary).';
 END
 ELSE
 BEGIN
-    PRINT 'Processing ' + CAST(@dbCount AS VARCHAR(10)) + ' user databases...';
-END
-
--- Execute the dynamic SQL
-IF LEN(@sql) > 0
-BEGIN
-    EXEC sp_executesql @sql;
-END
-ELSE
-BEGIN
-    PRINT '  - No databases to process.';
+    PRINT 'Processing completed: ' + CAST(@dbCount AS VARCHAR(10)) + ' user databases processed.';
 END
 
 -- =====================================================
