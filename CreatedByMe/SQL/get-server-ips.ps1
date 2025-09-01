@@ -1,0 +1,157 @@
+$servers = @"
+BDRW011
+BDRW016
+BDRW024
+BDRW025
+DPRW001
+DPRW002
+DPRW003
+DPRW004
+DPRW005
+DPRW006
+DPRW007
+DPRW008
+DUCCEAW1
+DUCCEAW2
+DUCCECCMPDB1
+DUCCECCMPDB2
+DUCCEECEDB1
+DUCCEECEDB2
+DUCCELGRB
+EECSARUH2HOW080
+EECSARUH2HOW081
+EECSARUH2HOW885
+EECSARUH6HOW043
+EECSARUH6HOW138
+EECSARUH6HOW156
+EECSARUH6HOW157
+JPPW001
+JPRW001
+JPRW002
+JPRW003
+JPRW004
+JPRW005
+JPRW006
+JPRW007
+JPRW008
+JPRW009
+JPRW010
+JPRW011
+JPRW012
+JPRW013
+JPRW014
+JPRW015
+JPRW016
+JPRW017
+JPRW018
+JPRW020
+JPRW021
+JUCCEAW1
+JUCCEAW2
+JUCCECCMPDB1
+JUCCECCMPDB2
+JUCCEECEDB1
+JUCCEECEDB2
+JUCCELGRA
+MPRW015
+MPRW066
+MPRW067
+MPRW087
+MPRW105
+MPRW114
+MPRW115
+MPRW128
+MPRW129
+MPRW132
+MPRW153
+MPRW174
+MPRW197
+MPRW198
+MPRW216
+MPRW217
+MPRW227
+MPRW228
+MPRW249
+MPRW262
+MPRW263
+MPRW265
+MPRW266
+MPRW326
+MPRW329
+MPRW330
+RUH-002-CNS-103
+RUH-002-KFX-009
+RUH-002-KFX-010
+RUH-002-MIS-001
+RUH-002-NUD-101
+RUH-002-RET-001
+RUH-002-SBS-002
+RUH-002-TFS-001
+RUH-002-TOL-001
+RUH-006-CC-001
+RUH-006-CC-002
+RUH-006-DB-001
+RUH-006-SEC-001
+SCCM-SQL-TEMP
+SDEW003
+SDEW015
+SDEW031
+SDEW032
+SDEW033
+SDEW043
+SDRW026
+SDRW036
+SDRW055
+SDRW056
+SLBW010
+SLBW015
+SPOCW010
+SPPW026
+SPPW030
+SPPW037 
+SPPW055
+SPRW008
+SPRW026
+SPRW027
+SPRW052
+SPRW053
+SPRW059
+SPRW062
+SPRW063
+SPRW082
+SPRW083
+SPRW085
+SPRW086
+SPRW104
+SPRW105
+SSTL040 
+SSTW017
+TESTSQL2012
+"@ -split "`n"
+
+$domainsToTry = @("", "prod.mobily.lan", "CHILD.LAB.LAN")
+
+$results = foreach ($name in $servers) {
+    $trimmed = $name.Trim()
+    if ($trimmed) {
+        $found = $false
+        foreach ($domain in $domainsToTry) {
+            $fqdnToTry = if ($domain -ne "") { "$trimmed.$domain" } else { $trimmed }
+            try {
+                $entry = [System.Net.Dns]::GetHostEntry($fqdnToTry)
+                $ip = $entry.AddressList | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1
+                $fqdn = $entry.HostName
+                [PSCustomObject]@{ FQDN = $fqdn; IP = $ip.IPAddressToString }
+                $found = $true
+                break
+            } catch {
+                # Try next domain
+            }
+        }
+        if (-not $found) {
+            [PSCustomObject]@{ FQDN = $trimmed; IP = "NotFound" }
+        }
+    }
+}
+
+$results | Format-Table FQDN, IP -AutoSize

@@ -54,7 +54,7 @@ BEGIN
     WHERE req.session_id <> @@SPID
         AND (req.last_wait_type NOT IN (N'BROKER_RECEIVE_WAITFOR', N'WAITFOR', N'TRACEWRITE', N'SP_SERVER_DIAGNOSTICS_SLEEP') OR @All = 1)
         AND (ses.login_name LIKE '%' + @LoginName + '%' OR @LoginName IS NULL)
-        AND (ses.host_name LIKE '%' + @Host + '%' OR @Host IS NULL)
+        AND (@Host IS NULL OR ses.host_name IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@Host, ',')))
         AND (req.total_elapsed_time >= @ElapsedTime OR @ElapsedTime IS NULL)
         AND (ses.session_id = @SessionId OR @SessionId IS NULL)
         AND (req.blocking_session_id >= @BlockedOnly OR @BlockedOnly IS NULL)
@@ -74,7 +74,7 @@ BEGIN
     WHERE req.session_id <> @@SPID 
         AND (req.last_wait_type NOT IN (N'BROKER_RECEIVE_WAITFOR', N'WAITFOR', N'TRACEWRITE') OR @All = 1)
         AND (ses.login_name LIKE '%' + @LoginName + '%' OR @LoginName IS NULL)
-        AND (ses.host_name LIKE '%' + @Host + '%' OR @Host IS NULL)
+        AND (@Host IS NULL OR ses.host_name IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@Host, ',')))
         AND (req.total_elapsed_time >= @ElapsedTime OR @ElapsedTime IS NULL)
         AND (ses.session_id = @SessionId OR @SessionId IS NULL)
         AND (req.blocking_session_id >= @BlockedOnly OR @BlockedOnly IS NULL)
