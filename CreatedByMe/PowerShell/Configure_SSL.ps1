@@ -1,11 +1,18 @@
 #create CSR
 $CN = "$($env:COMPUTERNAME).$((Get-WmiObject Win32_ComputerSystem).Domain)"
-$Cert = New-SelfSignedCertificate -DnsName $CN -CertStoreLocation Cert:\LocalMachine\My -KeyLength 2048 -KeyExportPolicy Exportable -KeySpec KeyExchange
+$infContent = @"
+[NewRequest]
+Subject = "CN=$CN"
+KeyLength = 2048
+Exportable = TRUE
+"@
+$infPath = [IO.Path]::Combine([Environment]::GetFolderPath("MyDocuments"), "$env:COMPUTERNAME.inf")
 $ReqPath = [IO.Path]::Combine([Environment]::GetFolderPath("MyDocuments"), "$env:COMPUTERNAME.csr")
-Export-CertificateRequest -Cert $Cert -FilePath $ReqPath
+$infContent | Out-File -FilePath $infPath -Encoding ASCII
+certreq -new $infPath $ReqPath
 Write-Output "CSR saved to: $ReqPath"
 
-
+##################################################################################################
 #try
 certreq -accept <Certfile>
 
