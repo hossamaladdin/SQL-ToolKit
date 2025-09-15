@@ -3,6 +3,7 @@
 -- RECONFIGURE;
 
 -- Create a temporary table to hold file names
+IF OBJECT_ID('tempdb..#BackupFiles') IS NULL
 CREATE TABLE #BackupFiles (FileName NVARCHAR(255), Depth INT, IsFile INT);
 
 -- Get list of files from the backup directory using xp_dirtree
@@ -19,7 +20,9 @@ DECLARE @RestoreCommand NVARCHAR(MAX);
 
 -- Cursor to loop through each backup file
 DECLARE file_cursor CURSOR FOR
-SELECT FileName FROM #BackupFiles;
+SELECT FileName FROM #BackupFiles
+left join sys.databases on name = LEFT(FileName, LEN(FileName) - 13)
+where name is null;
 
 OPEN file_cursor;
 FETCH NEXT FROM file_cursor INTO @FileName;
