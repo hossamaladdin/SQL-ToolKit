@@ -1,0 +1,4 @@
+Microsoft Sql Server 2019 Developer == 22222-00000-00000-00000-00000
+Microsoft Sql Server 2019 Enterprise == HMWJ3-KY3J2-NMVD7-KG4JR-X2G8G
+Microsoft Sql Server 2019 Enterprise Core == 2C9JR-K3RNG-QD4M4-JQ2HR-8468J
+Microsoft Sql Server 2019 Standard == PMBDC-FXVM3-T777P-N4FY8-PKFF4
