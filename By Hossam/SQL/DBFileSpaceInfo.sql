@@ -33,7 +33,11 @@ SELECT
     CAST(FILEPROPERTY(name, ''SpaceUsed'') AS int)/128.0 AS UsedSpaceMB,
     size/128.0 - CAST(FILEPROPERTY(name, ''SpaceUsed'') AS int)/128.0 AS FreeSpaceMB,
     ((size/128.0 - CAST(FILEPROPERTY(name, ''SpaceUsed'') AS int)/128.0)/(size/128.0))*100 AS FreePercentage,
-    ''USE ['' + DB_NAME() + '']; DBCC SHRINKDATABASE (N'''''' + DB_NAME() + ''''''); ''+CHAR(10)+''GO'' AS ShrinkCommand
+    CASE 
+        WHEN type = 0 THEN ''USE ['' + DB_NAME() + '']; DBCC SHRINKFILE (N'''''' + name + '''''', TRUNCATEONLY); -- Data file''+CHAR(10)+''GO''
+        WHEN type = 1 THEN ''USE ['' + DB_NAME() + '']; DBCC SHRINKFILE (N'''''' + name + ''''''); -- Log file''+CHAR(10)+''GO''
+        ELSE ''''
+    END AS ShrinkCommand
 FROM sys.database_files
 WHERE type IN (0,1)';
 
