@@ -34,9 +34,9 @@ SELECT
     size/128.0 - CAST(FILEPROPERTY(name, ''SpaceUsed'') AS int)/128.0 AS FreeSpaceMB,
     ((size/128.0 - CAST(FILEPROPERTY(name, ''SpaceUsed'') AS int)/128.0)/(size/128.0))*100 AS FreePercentage,
     CASE 
-        WHEN type = 0 THEN ''USE ['' + DB_NAME() + '']; DBCC SHRINKDATABASE (N'''''' +  DB_NAME() + ''''''); -- Database''+CHAR(10)+''GO''
-        WHEN type = 1 THEN ''USE ['' + DB_NAME() + '']; DBCC SHRINKFILE (N'''''' + name + ''''''); -- Log file''+CHAR(10)+''GO''
-        ELSE ''''
+    WHEN type = 0 THEN ''USE ['' + DB_NAME() + '']; DBCC SHRINKFILE (N'''''' + name + '''''', '' + CONVERT(NVARCHAR(20), CAST(FILEPROPERTY(name, ''SpaceUsed'') * 8.0 / 1024 * 1.10 AS INT)) + ''); -- Data file''+CHAR(10)+''GO''
+    WHEN type = 1 THEN ''USE ['' + DB_NAME() + '']; DBCC SHRINKFILE (N'''''' + name + ''''''); -- Log file''+CHAR(10)+''GO''
+    ELSE ''''
     END AS ShrinkCommand
 FROM sys.database_files
 WHERE type IN (0,1)';
@@ -51,25 +51,3 @@ ORDER BY FreeSpaceMB DESC;
 END
 
 GO
-/**************************/
-
---check progress
-SELECT  
-    r.session_id,
-    r.status,
-    r.command,
-    r.percent_complete,
-    r.start_time,
-    DATEDIFF(SECOND, r.start_time, GETDATE()) / 60.0 AS [Elapsed_Time_Minutes],
-    r.estimated_completion_time / 1000 / 60 AS [Est_Min_Left],
-    r.blocking_session_id,
-    r.wait_type,
-    r.wait_time,
-    r.wait_resource,
-    t.text AS [SQL Text]
-FROM sys.dm_exec_requests r
-    JOIN sys.dm_exec_sessions s ON r.session_id = s.session_id
-    CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
-WHERE r.command LIKE 'Dbcc%';
-
---SP_ACTIVESESSIONS
