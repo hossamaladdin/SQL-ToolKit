@@ -1,12 +1,10 @@
-SELECT CASE configuration_id WHEN 1539 THEN value_in_use END [MAXDOP],
-		CASE configuration_id WHEN 1544 THEN value_in_use END [MAX Memory]
-FROM  sys.configurations d
-WHERE configuration_id in (1539,1544)
+SELECT name,value_in_use
+	FROM  sys.configurations d
+WHERE configuration_id in (1539,1544,1538)
 
-
-select
+SELECT
 (physical_memory_in_use_kb/1024)Phy_Memory_usedby_Sqlserver_MB
-from sys. dm_os_process_memory
+FROM sys. dm_os_process_memory
 
 SELECT total_physical_memory_kb/1024 AS [Physical Memory (MB)], 
        available_physical_memory_kb/1024 AS [Available Memory (MB)]
