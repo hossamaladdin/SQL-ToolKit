@@ -5,6 +5,7 @@
 
 SET NOCOUNT ON;
 DECLARE @Details INT = 0; -- Set to 1 if you want to view index details
+DECLARE @ReadsThreshold INT = 2000; -- Change this value to desired threshold
 
 -- Create temp table to store all index data
 IF OBJECT_ID('tempdb..#AllIndexes') IS NOT NULL DROP TABLE #AllIndexes;
@@ -80,27 +81,27 @@ SELECT
     -- Size after removing indexes with < 1000 reads (excluding PKs)
     FORMAT(
         SUM(index_size_mb) - 
-        SUM(CASE WHEN total_reads < 1000 AND is_primary_key = 0 THEN index_size_mb ELSE 0 END), 
+        SUM(CASE WHEN total_reads < @ReadsThreshold AND is_primary_key = 0 THEN index_size_mb ELSE 0 END), 
         'N2'
     ) AS [Size After Removal (MB)],
     
     -- Space that would be freed
     FORMAT(
-        SUM(CASE WHEN total_reads < 1000 AND is_primary_key = 0 THEN index_size_mb ELSE 0 END),
+        SUM(CASE WHEN total_reads < @ReadsThreshold AND is_primary_key = 0 THEN index_size_mb ELSE 0 END),
         'N2'
     ) AS [Space Freed (MB)],
     
     -- Percentage decrease
     CAST(
         CASE WHEN SUM(index_size_mb) > 0 THEN
-            (SUM(CASE WHEN total_reads < 1000 AND is_primary_key = 0 THEN index_size_mb ELSE 0 END) 
+            (SUM(CASE WHEN total_reads < @ReadsThreshold AND is_primary_key = 0 THEN index_size_mb ELSE 0 END) 
              / SUM(index_size_mb) * 100)
         ELSE 0 END
     AS DECIMAL(5,2)) AS [Decrease %],
     
     -- Additional stats
     COUNT(*) AS [Total Indexes],
-    SUM(CASE WHEN total_reads < 1000 AND is_primary_key = 0 THEN 1 ELSE 0 END) AS [Low Usage Indexes]
+    SUM(CASE WHEN total_reads < @ReadsThreshold AND is_primary_key = 0 THEN 1 ELSE 0 END) AS [Low Usage Indexes]
     
 FROM #AllIndexes
 GROUP BY database_name
@@ -124,7 +125,7 @@ SELECT
     total_writes AS [Writes],
     CASE WHEN is_primary_key = 1 THEN 'PK' ELSE '' END AS [PK],
     CASE 
-        WHEN total_reads < 1000 AND is_primary_key = 0 THEN 'DROP CANDIDATE'
+        WHEN total_reads < @ReadsThreshold AND is_primary_key = 0 THEN 'DROP CANDIDATE'
         ELSE 'KEEP'
     END AS [Recommendation]
 FROM #AllIndexes
