@@ -146,7 +146,8 @@ BEGIN
         ON d.name = d_bak.database_name AND d_bak.type = 'I' AND d_bak.backup_rank = 1  -- Latest differential backup
     LEFT JOIN LatestBackups l
         ON d.name = l.database_name AND l.type = 'L' AND l.backup_rank = 1;  -- Latest log backup
-   
+    WHERE d.database_id<>2;
+
     PRINT 'Backup status collection complete.';
 END;
 GO

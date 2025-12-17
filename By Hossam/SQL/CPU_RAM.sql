@@ -1,9 +1,12 @@
 SELECT name,value_in_use
-	FROM  sys.configurations d
+FROM  sys.configurations d
 WHERE configuration_id in (1539,1544,1538)
 
-SELECT
-(physical_memory_in_use_kb/1024)Phy_Memory_usedby_Sqlserver_MB
+SELECT servicename, service_account, instant_file_initialization_enabled
+FROM sys.dm_server_services
+WHERE servicename LIKE 'SQL Server (%';
+
+SELECT (physical_memory_in_use_kb/1024)Phy_Memory_usedby_Sqlserver_MB
 FROM sys. dm_os_process_memory
 
 SELECT total_physical_memory_kb/1024 AS [Physical Memory (MB)], 
@@ -19,6 +22,5 @@ SELECT cpu_count,
 	FORMAT(physical_memory_kb/POWER(1024,1),'##,##') System_MemoryMB,
 	FORMAT(committed_kb/POWER(1024,1),'##,##') SQLMemoryUsedMB,
 	FORMAT(committed_target_kb/POWER(1024,1),'##,##') SQLMaxMemoryMB,dm_os_sys_info.*
-FROM sys.dm_os_sys_info
-,sys.configurations
+FROM sys.dm_os_sys_info,sys.configurations
 WHERE configuration_id in (1539)
