@@ -1,4 +1,4 @@
-﻿DECLARE @username SYSNAME = N'SAAPR\ADM-c.Hossam.Aladdin';
+﻿DECLARE @username SYSNAME = N'Domain\user.name';
 DECLARE @type NVARCHAR(50) = N'Windows';  -- 'SQL' or 'Windows'
 DECLARE @password NVARCHAR(128) = N'SecureP@ssw0rd123!';
 
