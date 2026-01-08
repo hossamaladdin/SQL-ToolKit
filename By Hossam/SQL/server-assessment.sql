@@ -696,39 +696,66 @@ SET Assessment = CASE
 
 -- Combine all detail reports
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #DatabaseBackups
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #FailedJobs
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #AllJobs
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #DiskSpace
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #SysAdminLogins
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #FileGrowth
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #TempDBFiles
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #LargestDBs
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
+       LastFullBackup AS Detail1,
+       LastDiffBackup AS Detail2,
+       LastLogBackup AS Detail3,
+       Assessment
 FROM #SQLLogins
 ORDER BY ReportSection, ItemName;
 
