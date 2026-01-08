@@ -186,16 +186,30 @@ SET FailedJobsLast24h = (SELECT COUNT(DISTINCT j.job_id)
 UPDATE #ServerMetrics
 SET DaysSinceRestart = DATEDIFF(DAY, StartTime, GETDATE());
 
--- Update backup metrics
+-- Update backup metrics (exclude AG secondary replicas)
 UPDATE #ServerMetrics
 SET DatabasesNeedingBackup = (SELECT COUNT(DISTINCT d.name)
                               FROM sys.databases d
-                              WHERE d.database_id > 4 AND d.state_desc = 'ONLINE'
-                              AND NOT EXISTS (
-                                  SELECT 1 FROM msdb.dbo.backupset b
-                                  WHERE b.database_name COLLATE DATABASE_DEFAULT = d.name COLLATE DATABASE_DEFAULT
-                                  AND b.type = 'D'
-                                  AND DATEDIFF(DAY, b.backup_finish_date, GETDATE()) <= 7
+                              LEFT JOIN sys.dm_hadr_database_replica_states hdrs ON d.database_id = hdrs.database_id AND hdrs.is_local = 1
+                              WHERE d.database_id > 4
+                              AND d.state_desc = 'ONLINE'
+                              AND (hdrs.database_id IS NULL OR hdrs.is_primary_replica = 1)  -- Exclude AG secondaries
+                              AND (
+                                  -- No full backup in last 7 days
+                                  NOT EXISTS (
+                                      SELECT 1 FROM msdb.dbo.backupset b
+                                      WHERE b.database_name COLLATE DATABASE_DEFAULT = d.name COLLATE DATABASE_DEFAULT
+                                      AND b.type = 'D'
+                                      AND DATEDIFF(DAY, b.backup_finish_date, GETDATE()) <= 7
+                                  )
+                                  OR
+                                  -- For FULL/BULK_LOGGED: no log backup in last 24 hours
+                                  (d.recovery_model IN (1, 2) AND NOT EXISTS (
+                                      SELECT 1 FROM msdb.dbo.backupset b
+                                      WHERE b.database_name COLLATE DATABASE_DEFAULT = d.name COLLATE DATABASE_DEFAULT
+                                      AND b.type = 'L'
+                                      AND DATEDIFF(HOUR, b.backup_finish_date, GETDATE()) <= 24
+                                  ))
                               )),
     LastFullBackup = (SELECT MAX(b.backup_finish_date)
                       FROM msdb.dbo.backupset b
@@ -361,7 +375,7 @@ FROM #ServerMetrics m;
 -- RESULT SET 2: DETAILED MULTI-ROW REPORT
 -- ============================================================================
 
--- Database Backups Detail
+-- Database Backups Detail (exclude AG secondaries)
 SELECT
     @@SERVERNAME AS ServerName,
     'Database Backups' AS ReportSection,
@@ -380,7 +394,9 @@ INTO #DatabaseBackups
 FROM sys.databases d
 LEFT JOIN sys.master_files mf ON d.database_id = mf.database_id AND mf.type = 0
 LEFT JOIN msdb.dbo.backupset b ON d.name COLLATE DATABASE_DEFAULT = b.database_name COLLATE DATABASE_DEFAULT
+LEFT JOIN sys.dm_hadr_database_replica_states hdrs ON d.database_id = hdrs.database_id AND hdrs.is_local = 1
 WHERE d.database_id > 4
+AND (hdrs.database_id IS NULL OR hdrs.is_primary_replica = 1)  -- Exclude AG secondaries
 GROUP BY d.name, d.state_desc, d.recovery_model_desc;
 
 -- Format dates
