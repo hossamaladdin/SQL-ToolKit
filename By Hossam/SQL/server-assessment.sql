@@ -108,15 +108,21 @@ SET CPUCount = (SELECT cpu_count FROM sys.dm_os_sys_info),
 
 -- Update from sys.dm_os_performance_counters (memory performance)
 UPDATE #ServerMetrics
-SET TargetServerMem_MB = (SELECT cntr_value/1024 FROM sys.dm_os_performance_counters
+SET TargetServerMem_MB = (SELECT TOP 1 CAST(cntr_value AS BIGINT)/1024 FROM sys.dm_os_performance_counters
                           WHERE counter_name = 'Target Server Memory (KB)' AND object_name LIKE '%Memory Manager%'),
-    TotalServerMem_MB = (SELECT cntr_value/1024 FROM sys.dm_os_performance_counters
+    TotalServerMem_MB = (SELECT TOP 1 CAST(cntr_value AS BIGINT)/1024 FROM sys.dm_os_performance_counters
                          WHERE counter_name = 'Total Server Memory (KB)' AND object_name LIKE '%Memory Manager%'),
-    PageLifeExpectancy = (SELECT cntr_value FROM sys.dm_os_performance_counters
+    PageLifeExpectancy = (SELECT TOP 1 CAST(cntr_value AS BIGINT) FROM sys.dm_os_performance_counters
                           WHERE counter_name = 'Page life expectancy' AND object_name LIKE '%Buffer Manager%'),
-    BufferCacheHitRatio = (SELECT CAST(cntr_value AS DECIMAL(5,2)) FROM sys.dm_os_performance_counters
-                           WHERE counter_name = 'Buffer cache hit ratio' AND object_name LIKE '%Buffer Manager%'),
-    UserConnections = (SELECT cntr_value FROM sys.dm_os_performance_counters
+    BufferCacheHitRatio = (SELECT TOP 1
+                           CAST((CAST(a.cntr_value AS BIGINT) * 100.0) / NULLIF(CAST(b.cntr_value AS BIGINT), 0) AS DECIMAL(5,2))
+                           FROM sys.dm_os_performance_counters a
+                           INNER JOIN sys.dm_os_performance_counters b
+                               ON a.object_name = b.object_name
+                           WHERE a.counter_name = 'Buffer cache hit ratio'
+                               AND b.counter_name = 'Buffer cache hit ratio base'
+                               AND a.object_name LIKE '%Buffer Manager%'),
+    UserConnections = (SELECT TOP 1 CAST(cntr_value AS INT) FROM sys.dm_os_performance_counters
                        WHERE counter_name = 'User Connections' AND object_name LIKE '%General Statistics%');
 
 -- Update from sys.dm_server_services (service account and IFI)
@@ -140,7 +146,7 @@ SET TempDBFiles = (SELECT COUNT(*) FROM sys.master_files WHERE database_id = 2 A
 
 -- Update from sys.dm_os_volume_stats (disk space)
 UPDATE #ServerMetrics
-SET MinDiskPct = (SELECT MIN(CAST((vs.available_bytes * 100.0) / vs.total_bytes AS DECIMAL(5,2)))
+SET MinDiskPct = (SELECT MIN(CAST((CAST(vs.available_bytes AS BIGINT) * 100) / CAST(vs.total_bytes AS FLOAT) AS DECIMAL(5,2)))
                   FROM sys.master_files AS mf
                   CROSS APPLY sys.dm_os_volume_stats(mf.database_id, mf.file_id) AS vs);
 
@@ -369,7 +375,7 @@ SELECT
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus
+    CAST(NULL AS VARCHAR(100)) AS Assessment
 INTO #DatabaseBackups
 FROM sys.databases d
 LEFT JOIN sys.master_files mf ON d.database_id = mf.database_id AND mf.type = 0
@@ -385,7 +391,7 @@ SET LastFullBackup = CONVERT(VARCHAR(50), LastFullBackup_DT, 120),
 
 -- Calculate backup status
 UPDATE #DatabaseBackups
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN Status <> 'ONLINE' THEN 'Offline'
                        WHEN LastFullBackup_DT IS NULL THEN 'CRITICAL: Never Backed Up'
                        WHEN DATEDIFF(DAY, LastFullBackup_DT, GETDATE()) > 7 THEN 'WARNING: >7 days'
@@ -407,7 +413,7 @@ SELECT
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
-    LEFT(h.message, 500) AS BackupStatus,
+    LEFT(h.message, 500) AS Assessment,
     CAST(NULL AS VARCHAR(50)) AS Status
 INTO #FailedJobs
 FROM msdb.dbo.sysjobs j
@@ -443,7 +449,7 @@ SELECT
     CONVERT(VARCHAR(50), j.date_created, 120) AS LastFullBackup,
     CONVERT(VARCHAR(50), j.date_modified, 120) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus,
+    CAST(NULL AS VARCHAR(100)) AS Assessment,
     CAST(NULL AS VARCHAR(50)) AS RecoveryModel
 INTO #AllJobs
 FROM msdb.dbo.sysjobs j
@@ -470,7 +476,7 @@ SET LastLogBackup = CASE
 
 -- Format all jobs backup status
 UPDATE #AllJobs
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN run_status = 1 THEN 'OK: Last run succeeded'
                        WHEN run_status = 0 THEN 'CRITICAL: Last run failed'
                        WHEN run_status = 3 THEN 'WARNING: Last run canceled'
@@ -484,22 +490,32 @@ SELECT
     'Disk Space' AS ReportSection,
     vs.volume_mount_point COLLATE DATABASE_DEFAULT AS ItemName,
     vs.logical_volume_name COLLATE DATABASE_DEFAULT AS Status,
+    vs.total_bytes,
+    vs.available_bytes,
     CAST(NULL AS VARCHAR(50)) AS RecoveryModel,
     CAST(vs.total_bytes/1073741824.0 AS DECIMAL(10,2)) AS SizeGB,
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
-    CAST(CAST(vs.available_bytes/1073741824.0 AS DECIMAL(10,2)) AS VARCHAR(20)) + ' GB' AS LastLogBackup,
-    CASE
-        WHEN CAST((vs.available_bytes * 100.0) / vs.total_bytes AS DECIMAL(5,2)) < 10 THEN 'CRITICAL: <10%'
-        WHEN CAST((vs.available_bytes * 100.0) / vs.total_bytes AS DECIMAL(5,2)) < 20 THEN 'WARNING: <20%'
-        ELSE 'OK'
-    END + ' (' + CAST(CAST((vs.available_bytes * 100.0) / vs.total_bytes AS DECIMAL(5,2)) AS VARCHAR(10)) + '% free)' AS BackupStatus
+    CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
+    CAST(NULL AS VARCHAR(200)) AS Assessment
 INTO #DiskSpace
 FROM (
     SELECT DISTINCT volume_mount_point, logical_volume_name, total_bytes, available_bytes
     FROM sys.master_files mf
     CROSS APPLY sys.dm_os_volume_stats(mf.database_id, mf.file_id) vs
 ) vs;
+
+-- Format disk space available
+UPDATE #DiskSpace
+SET LastLogBackup = CAST(CAST(available_bytes/1073741824.0 AS DECIMAL(10,2)) AS VARCHAR(20)) + ' GB';
+
+-- Format disk space status
+UPDATE #DiskSpace
+SET Assessment = CASE
+                       WHEN CAST((CAST(available_bytes AS BIGINT) * 100) / CAST(total_bytes AS FLOAT) AS DECIMAL(5,2)) < 10 THEN 'CRITICAL: <10%'
+                       WHEN CAST((CAST(available_bytes AS BIGINT) * 100) / CAST(total_bytes AS FLOAT) AS DECIMAL(5,2)) < 20 THEN 'WARNING: <20%'
+                       ELSE 'OK'
+                   END + ' (' + CAST(CAST((CAST(available_bytes AS BIGINT) * 100) / CAST(total_bytes AS FLOAT) AS DECIMAL(5,2)) AS VARCHAR(10)) + '% free)';
 
 -- SysAdmin Logins
 SELECT
@@ -512,7 +528,7 @@ SELECT
     CONVERT(VARCHAR(50), p.create_date, 120) AS LastFullBackup,
     CONVERT(VARCHAR(50), p.modify_date, 120) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus,
+    CAST(NULL AS VARCHAR(100)) AS Assessment,
     CAST(NULL AS VARCHAR(50)) AS RecoveryModel
 INTO #SysAdminLogins
 FROM sys.server_principals p
@@ -525,7 +541,7 @@ SET RecoveryModel = CASE WHEN is_disabled = 0 THEN 'Active' ELSE 'Disabled' END;
 
 -- Format sysadmin logins backup status
 UPDATE #SysAdminLogins
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN ItemName = 'sa' AND is_disabled = 0 THEN 'WARNING: sa account enabled'
                        WHEN Status = 'SQL_LOGIN' THEN 'INFO: SQL Authentication'
                        ELSE 'OK'
@@ -544,7 +560,7 @@ SELECT
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus
+    CAST(NULL AS VARCHAR(100)) AS Assessment
 INTO #FileGrowth
 FROM sys.master_files mf
 WHERE mf.database_id > 4
@@ -561,7 +577,7 @@ SET LastLogBackup = CASE WHEN is_percent_growth = 1 THEN CAST(growth AS VARCHAR(
 
 -- Format file growth backup status
 UPDATE #FileGrowth
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN is_percent_growth = 1 AND SizeGB > 1000 THEN 'WARNING: Large file with % growth'
                        WHEN is_percent_growth = 0 AND growth = 1 THEN 'CRITICAL: 8KB growth'
                        WHEN is_percent_growth = 0 AND growth * 8 < 64 THEN 'WARNING: Growth <64MB'
@@ -583,7 +599,7 @@ SELECT
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus
+    CAST(NULL AS VARCHAR(100)) AS Assessment
 INTO #TempDBFiles
 FROM sys.master_files mf
 WHERE mf.database_id = 2;
@@ -595,7 +611,7 @@ SET LastLogBackup = CASE WHEN is_percent_growth = 1 THEN CAST(growth AS VARCHAR(
 
 -- Format TempDB files backup status
 UPDATE #TempDBFiles
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN Status = 'ROWS' AND EXISTS (
                            SELECT 1 FROM sys.master_files mf2
                            WHERE mf2.database_id = 2 AND mf2.type = 0 AND mf2.file_id <> file_id
@@ -616,7 +632,7 @@ SELECT
     CONVERT(VARCHAR(50), db.create_date, 120) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(100)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus
+    CAST(NULL AS VARCHAR(100)) AS Assessment
 INTO #LargestDBs
 FROM (
     SELECT TOP 10
@@ -636,7 +652,7 @@ SET LastLogBackup = 'Compatibility: ' + CAST(compatibility_level AS VARCHAR(10))
 
 -- Format largest databases backup status
 UPDATE #LargestDBs
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN compatibility_level < 150 THEN 'INFO: Consider upgrading compatibility level'
                        ELSE 'OK'
                    END;
@@ -654,7 +670,7 @@ SELECT
     CONVERT(VARCHAR(50), sl.create_date, 120) AS LastFullBackup,
     CONVERT(VARCHAR(50), sl.modify_date, 120) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(100)) AS LastLogBackup,
-    CAST(NULL AS VARCHAR(100)) AS BackupStatus,
+    CAST(NULL AS VARCHAR(100)) AS Assessment,
     CAST(NULL AS VARCHAR(50)) AS RecoveryModel
 INTO #SQLLogins
 FROM sys.sql_logins sl
@@ -672,7 +688,7 @@ SET LastLogBackup = 'Policy: ' + CASE WHEN is_policy_checked = 1 THEN 'Yes' ELSE
 
 -- Format SQL logins backup status
 UPDATE #SQLLogins
-SET BackupStatus = CASE
+SET Assessment = CASE
                        WHEN is_policy_checked = 0 THEN 'WARNING: Password policy not enforced'
                        WHEN is_expiration_checked = 0 THEN 'INFO: Password expiration disabled'
                        ELSE 'OK'
@@ -680,39 +696,39 @@ SET BackupStatus = CASE
 
 -- Combine all detail reports
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #DatabaseBackups
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #FailedJobs
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #AllJobs
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #DiskSpace
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #SysAdminLogins
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #FileGrowth
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #TempDBFiles
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #LargestDBs
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
-       LastFullBackup, LastDiffBackup, LastLogBackup, BackupStatus
+       LastFullBackup, LastDiffBackup, LastLogBackup, Assessment
 FROM #SQLLogins
 ORDER BY ReportSection, ItemName;
 
