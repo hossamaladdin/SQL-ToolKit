@@ -8,7 +8,7 @@ SET NOCOUNT ON;
 -- Drop temp tables if they exist
 DROP TABLE IF EXISTS #ServerMetrics, #DatabaseBackups, #FailedJobs, #AllJobs,
                      #DiskSpace, #SysAdminLogins, #FileGrowth, #TempDBFiles,
-                     #LargestDBs, #SQLLogins;
+                     #LargestDBs, #SQLLogins, #Final;
 
 -- ============================================================================
 -- COLLECT SERVER METRICS INTO TEMP TABLE
@@ -382,22 +382,37 @@ SELECT
     d.name COLLATE DATABASE_DEFAULT AS ItemName,
     d.state_desc COLLATE DATABASE_DEFAULT AS Status,
     d.recovery_model_desc COLLATE DATABASE_DEFAULT AS RecoveryModel,
-    CAST(SUM(CAST(mf.size AS BIGINT) * 8) / 1024.0 / 1024 AS DECIMAL(10,2)) AS SizeGB,
-    MAX(CASE WHEN b.type = 'D' THEN b.backup_finish_date END) AS LastFullBackup_DT,
-    MAX(CASE WHEN b.type = 'I' THEN b.backup_finish_date END) AS LastDiffBackup_DT,
-    MAX(CASE WHEN b.type = 'L' THEN b.backup_finish_date END) AS LastLogBackup_DT,
+    CAST(mf.SizeMB / 1024.0 AS DECIMAL(18,2)) AS SizeGB,
+    b.LastFullBackup_DT,
+    b.LastDiffBackup_DT,
+    b.LastLogBackup_DT,
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
     CAST(NULL AS VARCHAR(100)) AS Assessment
 INTO #DatabaseBackups
 FROM sys.databases d
-LEFT JOIN sys.master_files mf ON d.database_id = mf.database_id AND mf.type = 0
-LEFT JOIN msdb.dbo.backupset b ON d.name COLLATE DATABASE_DEFAULT = b.database_name COLLATE DATABASE_DEFAULT
-LEFT JOIN sys.dm_hadr_database_replica_states hdrs ON d.database_id = hdrs.database_id AND hdrs.is_local = 1
+LEFT JOIN (
+    SELECT
+        database_id,
+        SUM(size) / 128.0 AS SizeMB   -- EXACT same unit SSMS uses
+    FROM sys.master_files
+    GROUP BY database_id
+) mf ON d.database_id = mf.database_id
+LEFT JOIN (
+    SELECT
+        database_name,
+        MAX(CASE WHEN type = 'D' THEN backup_finish_date END) AS LastFullBackup_DT,
+        MAX(CASE WHEN type = 'I' THEN backup_finish_date END) AS LastDiffBackup_DT,
+        MAX(CASE WHEN type = 'L' THEN backup_finish_date END) AS LastLogBackup_DT
+    FROM msdb.dbo.backupset
+    GROUP BY database_name
+) b ON d.name COLLATE DATABASE_DEFAULT = b.database_name COLLATE DATABASE_DEFAULT
+LEFT JOIN sys.dm_hadr_database_replica_states hdrs
+    ON d.database_id = hdrs.database_id
+    AND hdrs.is_local = 1
 WHERE d.database_id > 4
-AND (hdrs.database_id IS NULL OR hdrs.is_primary_replica = 1)  -- Exclude AG secondaries
-GROUP BY d.name, d.state_desc, d.recovery_model_desc;
+  AND (hdrs.database_id IS NULL OR hdrs.is_primary_replica = 1);
 
 -- Format dates
 UPDATE #DatabaseBackups
@@ -424,13 +439,14 @@ SELECT
     h.run_status,
     h.run_date,
     h.run_time,
-    c.name COLLATE DATABASE_DEFAULT AS RecoveryModel,
+    c.name COLLATE DATABASE_DEFAULT AS JobCategory,
     CAST(NULL AS DECIMAL(10,2)) AS SizeGB,
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
     CAST(NULL AS VARCHAR(50)) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
     LEFT(h.message, 500) AS Assessment,
-    CAST(NULL AS VARCHAR(50)) AS Status
+    CAST(NULL AS VARCHAR(50)) AS Status,
+    CAST(NULL AS VARCHAR(50)) AS RecoveryModel
 INTO #FailedJobs
 FROM msdb.dbo.sysjobs j
 INNER JOIN msdb.dbo.sysjobhistory h ON j.job_id = h.job_id
@@ -440,13 +456,14 @@ WHERE h.run_status IN (0, 2, 3)
     AND h.run_date >= CONVERT(INT, CONVERT(VARCHAR(8), DATEADD(DAY, -7, GETDATE()), 112))
     AND j.enabled = 1;
 
--- Format failed jobs status
+-- Format failed jobs status and recovery model (category)
 UPDATE #FailedJobs
-SET Status = CASE run_status WHEN 0 THEN 'Failed' WHEN 2 THEN 'Retry' WHEN 3 THEN 'Canceled' END;
+SET Status = CASE run_status WHEN 0 THEN 'Failed' WHEN 2 THEN 'Retry' WHEN 3 THEN 'Canceled' END,
+    RecoveryModel = JobCategory;
 
 -- Format failed jobs run time
 UPDATE #FailedJobs
-SET LastLogBackup = CASE WHEN run_date > 0 THEN
+SET LastFullBackup = CASE WHEN run_date > 0 THEN
                         STUFF(STUFF(CAST(run_date AS VARCHAR(8)), 7, 0, '-'), 5, 0, '-') + ' ' +
                         STUFF(STUFF(RIGHT('000000' + CAST(run_time AS VARCHAR(6)), 6), 5, 0, ':'), 3, 0, ':')
                     ELSE 'Unknown' END;
@@ -456,7 +473,7 @@ SELECT
     @@SERVERNAME AS ServerName,
     'All Enabled Jobs' AS ReportSection,
     j.name COLLATE DATABASE_DEFAULT AS ItemName,
-    c.name COLLATE DATABASE_DEFAULT AS Status,
+    c.name COLLATE DATABASE_DEFAULT AS JobCategory,
     j.enabled,
     h.run_status,
     h.run_date,
@@ -466,6 +483,7 @@ SELECT
     CONVERT(VARCHAR(50), j.date_modified, 120) AS LastDiffBackup,
     CAST(NULL AS VARCHAR(50)) AS LastLogBackup,
     CAST(NULL AS VARCHAR(100)) AS Assessment,
+    CAST(NULL AS VARCHAR(50)) AS Status,
     CAST(NULL AS VARCHAR(50)) AS RecoveryModel
 INTO #AllJobs
 FROM msdb.dbo.sysjobs j
@@ -478,9 +496,17 @@ OUTER APPLY (
 ) h
 WHERE j.enabled = 1 AND c.name <> 'Report Server';
 
--- Format all jobs recovery model
+-- Format all jobs status and recovery model (category)
 UPDATE #AllJobs
-SET RecoveryModel = CASE WHEN enabled = 1 THEN 'Enabled' ELSE 'Disabled' END;
+SET Status = CASE
+                 WHEN run_status = 1 THEN 'Success'
+                 WHEN run_status = 0 THEN 'Failed'
+                 WHEN run_status = 2 THEN 'Retry'
+                 WHEN run_status = 3 THEN 'Canceled'
+                 WHEN run_date IS NULL THEN 'Never Run'
+                 ELSE 'Unknown'
+             END,
+    RecoveryModel = JobCategory;
 
 -- Format all jobs last run
 UPDATE #AllJobs
@@ -570,7 +596,7 @@ SELECT
     DB_NAME(mf.database_id) COLLATE DATABASE_DEFAULT AS ItemName,
     mf.name COLLATE DATABASE_DEFAULT AS Status,
     mf.type_desc COLLATE DATABASE_DEFAULT AS RecoveryModel,
-    CAST(CAST(mf.size AS BIGINT) * 8 / 1024.0 AS DECIMAL(10,2)) AS SizeGB,
+    CAST(CAST(mf.size AS BIGINT) * 8 / 1024.0 / 1024 AS DECIMAL(10,2)) AS SizeGB,
     mf.is_percent_growth,
     mf.growth,
     CAST(NULL AS VARCHAR(50)) AS LastFullBackup,
@@ -607,7 +633,7 @@ SELECT
     mf.name COLLATE DATABASE_DEFAULT AS ItemName,
     mf.type_desc COLLATE DATABASE_DEFAULT AS Status,
     mf.physical_name COLLATE DATABASE_DEFAULT AS RecoveryModel,
-    CAST(CAST(mf.size AS BIGINT) * 8 / 1024.0 AS DECIMAL(10,2)) AS SizeGB,
+    CAST(CAST(mf.size AS BIGINT) * 8 / 1024.0 / 1024 AS DECIMAL(10,2)) AS SizeGB,
     mf.is_percent_growth,
     mf.growth,
     mf.file_id,
@@ -716,6 +742,7 @@ SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
        LastDiffBackup AS Detail2,
        LastLogBackup AS Detail3,
        Assessment
+INTO #FINAL
 FROM #DatabaseBackups
 UNION ALL
 SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
@@ -775,9 +802,12 @@ SELECT ServerName, ReportSection, ItemName, Status, RecoveryModel, SizeGB,
 FROM #SQLLogins
 ORDER BY ReportSection, ItemName;
 
+--Display results
+SELECT * FROM #FINAL WHERE Assessment NOT LIKE 'OK%' 
+
 -- Clean up
 DROP TABLE IF EXISTS #ServerMetrics, #DatabaseBackups, #FailedJobs, #AllJobs,
                      #DiskSpace, #SysAdminLogins, #FileGrowth, #TempDBFiles,
-                     #LargestDBs, #SQLLogins;
+                     #LargestDBs, #SQLLogins, #FINAL;
 
 SET NOCOUNT OFF;
