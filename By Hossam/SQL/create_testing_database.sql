@@ -111,45 +111,19 @@ BEGIN
         PRINT '';
     END
 
-    -- Step 3: Get logical file names from backup
-    PRINT '3. Reading backup file information...';
+    -- Step 3: Get logical file names from source database
+    PRINT '3. Reading database file information...';
 
-    DECLARE @FileList TABLE (
-        LogicalName NVARCHAR(128),
-        PhysicalName NVARCHAR(260),
-        Type CHAR(1),
-        FileGroupName NVARCHAR(128),
-        Size NUMERIC(20,0),
-        MaxSize NUMERIC(20,0),
-        FileID BIGINT,
-        CreateLSN NUMERIC(25,0),
-        DropLSN NUMERIC(25,0),
-        UniqueID UNIQUEIDENTIFIER,
-        ReadOnlyLSN NUMERIC(25,0),
-        ReadWriteLSN NUMERIC(25,0),
-        BackupSizeInBytes BIGINT,
-        SourceBlockSize INT,
-        FileGroupID INT,
-        LogGroupGUID UNIQUEIDENTIFIER,
-        DifferentialBaseLSN NUMERIC(25,0),
-        DifferentialBaseGUID UNIQUEIDENTIFIER,
-        IsReadOnly BIT,
-        IsPresent BIT,
-        TDEThumbprint VARBINARY(32),
-        SnapshotURL NVARCHAR(360)
-    );
+    -- Get logical names for data and log files from sys.master_files
+    SELECT @LogicalDataName = name
+    FROM sys.master_files
+    WHERE database_id = DB_ID(@SourceDatabase)
+      AND type = 0;  -- Data file
 
-    INSERT INTO @FileList
-    EXEC('RESTORE FILELISTONLY FROM DISK = ''' + @BackupFile + '''');
-
-    -- Get logical names for data and log files
-    SELECT @LogicalDataName = LogicalName
-    FROM @FileList
-    WHERE Type = 'D';
-
-    SELECT @LogicalLogName = LogicalName
-    FROM @FileList
-    WHERE Type = 'L';
+    SELECT @LogicalLogName = name
+    FROM sys.master_files
+    WHERE database_id = DB_ID(@SourceDatabase)
+      AND type = 1;  -- Log file
 
     -- Get default data directory for SQL Server
     DECLARE @DefaultDataPath NVARCHAR(500);
@@ -164,8 +138,8 @@ BEGIN
     SET @DataFilePath = @DefaultDataPath + @TestingDatabase + '.mdf';
     SET @LogFilePath = @DefaultLogPath + @TestingDatabase + '_log.ldf';
 
-    PRINT '   Data File: ' + @DataFilePath;
-    PRINT '   Log File: ' + @LogFilePath;
+    PRINT '   Logical Data File: ' + @LogicalDataName + ' -> ' + @DataFilePath;
+    PRINT '   Logical Log File: ' + @LogicalLogName + ' -> ' + @LogFilePath;
     PRINT '';
 
     -- Step 4: Restore database with new file names
