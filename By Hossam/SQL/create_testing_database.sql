@@ -4,6 +4,13 @@
     Purpose: Creates a COPY_ONLY backup of a database and restores it as a testing database
              with date suffix, handling file conflicts and idempotency.
 
+    Features:
+             - Handles multiple data files (.mdf, .ndf)
+             - Handles log files (.ldf)
+             - Handles FILESTREAM files
+             - Automatically reads file structure from backup (not sys.master_files)
+             - Drops existing testing database if present
+
     Usage: Set @SourceDatabase variable and execute
 */
 
@@ -111,38 +118,127 @@ BEGIN
         PRINT '';
     END
 
-    -- Step 3: Get logical file names from source database
-    PRINT '3. Reading database file information...';
-
-    -- Get logical names for data and log files from sys.master_files
-    SELECT @LogicalDataName = name
-    FROM sys.master_files
-    WHERE database_id = DB_ID(@SourceDatabase)
-      AND type = 0;  -- Data file
-
-    SELECT @LogicalLogName = name
-    FROM sys.master_files
-    WHERE database_id = DB_ID(@SourceDatabase)
-      AND type = 1;  -- Log file
+    -- Step 3: Get logical file names from backup file (not sys.master_files)
+    PRINT '3. Reading database file information from backup...';
 
     -- Get default data directory for SQL Server
     DECLARE @DefaultDataPath NVARCHAR(500);
     DECLARE @DefaultLogPath NVARCHAR(500);
+    DECLARE @DefaultFileStreamPath NVARCHAR(500);
 
     SELECT @DefaultDataPath =
         CAST(SERVERPROPERTY('InstanceDefaultDataPath') AS NVARCHAR(500));
     SELECT @DefaultLogPath =
         CAST(SERVERPROPERTY('InstanceDefaultLogPath') AS NVARCHAR(500));
 
-    -- Construct new file paths
-    SET @DataFilePath = @DefaultDataPath + @TestingDatabase + '.mdf';
-    SET @LogFilePath = @DefaultLogPath + @TestingDatabase + '_log.ldf';
+    -- FileStream path is typically in a subdirectory
+    SET @DefaultFileStreamPath = @DefaultDataPath + @TestingDatabase + '_FileStream\';
 
-    PRINT '   Logical Data File: ' + @LogicalDataName + ' -> ' + @DataFilePath;
-    PRINT '   Logical Log File: ' + @LogicalLogName + ' -> ' + @LogFilePath;
+    -- Create temp table to hold file list from backup
+    DECLARE @FileList TABLE (
+        LogicalName NVARCHAR(128),
+        PhysicalName NVARCHAR(260),
+        Type CHAR(1),
+        FileGroupName NVARCHAR(128),
+        Size NUMERIC(20,0),
+        MaxSize NUMERIC(20,0),
+        FileID BIGINT,
+        CreateLSN NUMERIC(25,0),
+        DropLSN NUMERIC(25,0),
+        UniqueID UNIQUEIDENTIFIER,
+        ReadOnlyLSN NUMERIC(25,0),
+        ReadWriteLSN NUMERIC(25,0),
+        BackupSizeInBytes BIGINT,
+        SourceBlockSize INT,
+        FileGroupID INT,
+        LogGroupGUID UNIQUEIDENTIFIER,
+        DifferentialBaseLSN NUMERIC(25,0),
+        DifferentialBaseGUID UNIQUEIDENTIFIER,
+        IsReadOnly BIT,
+        IsPresent BIT,
+        TDEThumbprint VARBINARY(32),
+        SnapshotUrl NVARCHAR(360)
+    );
+
+    -- Get file list from backup
+    INSERT INTO @FileList
+    EXEC('RESTORE FILELISTONLY FROM DISK = ''' + @BackupFile + '''');
+
+    -- Build RESTORE command with all MOVE clauses
+    DECLARE @MoveClause NVARCHAR(MAX) = '';
+    DECLARE @FileCounter INT = 0;
+    DECLARE @NewPhysicalPath NVARCHAR(500);
+    DECLARE @FileType CHAR(1);
+    DECLARE @FileExtension NVARCHAR(10);
+    DECLARE @HasFileStream BIT = 0;
+    DECLARE @FileStreamDir NVARCHAR(500);
+
+    PRINT '   Files to restore:';
+
+    DECLARE file_cursor CURSOR FOR
+    SELECT LogicalName, Type FROM @FileList ORDER BY FileID;
+
+    OPEN file_cursor;
+    FETCH NEXT FROM file_cursor INTO @LogicalDataName, @FileType;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        -- Determine file path based on type
+        IF @FileType = 'D' -- Data file
+        BEGIN
+            SET @FileCounter = @FileCounter + 1;
+            IF @FileCounter = 1
+                SET @FileExtension = '.mdf';
+            ELSE
+                SET @FileExtension = '_' + CAST(@FileCounter AS NVARCHAR(10)) + '.ndf';
+
+            SET @NewPhysicalPath = @DefaultDataPath + @TestingDatabase + @FileExtension;
+        END
+        ELSE IF @FileType = 'L' -- Log file
+        BEGIN
+            SET @NewPhysicalPath = @DefaultLogPath + @TestingDatabase + '_log.ldf';
+        END
+        ELSE IF @FileType = 'S' -- FILESTREAM
+        BEGIN
+            -- FILESTREAM path is just the directory, not including the logical file name
+            SET @HasFileStream = 1;
+            SET @FileStreamDir = @DefaultFileStreamPath;
+            SET @NewPhysicalPath = @FileStreamDir;
+        END
+        ELSE -- Unknown type
+        BEGIN
+            SET @NewPhysicalPath = @DefaultDataPath + @TestingDatabase + '_' + @LogicalDataName;
+        END
+
+        -- Add MOVE clause
+        SET @MoveClause = @MoveClause +
+            '            MOVE ''' + @LogicalDataName + ''' TO ''' + @NewPhysicalPath + ''',' + CHAR(13) + CHAR(10);
+
+        -- Print file info
+        PRINT '      ' + @LogicalDataName + ' (' +
+            CASE @FileType
+                WHEN 'D' THEN 'Data'
+                WHEN 'L' THEN 'Log'
+                WHEN 'S' THEN 'FileStream'
+                ELSE 'Unknown'
+            END + ') -> ' + @NewPhysicalPath;
+
+        FETCH NEXT FROM file_cursor INTO @LogicalDataName, @FileType;
+    END
+
+    CLOSE file_cursor;
+    DEALLOCATE file_cursor;
+
+    -- Note: SQL Server will automatically create FILESTREAM directories during restore
+    IF @HasFileStream = 1
+    BEGIN
+        PRINT '';
+        PRINT '   Note: Database contains FILESTREAM files. SQL Server will create the directory automatically.';
+    END
+
     PRINT '';
 
-    -- Step 4: Restore database with new file names
+    -- Step 4: Restore database with all file names
     BEGIN TRY
         PRINT '4. Restoring database...';
 
@@ -150,8 +246,7 @@ BEGIN
         RESTORE DATABASE [' + @TestingDatabase + ']
         FROM DISK = ''' + @BackupFile + '''
         WITH
-            MOVE ''' + @LogicalDataName + ''' TO ''' + @DataFilePath + ''',
-            MOVE ''' + @LogicalLogName + ''' TO ''' + @LogFilePath + ''',
+' + @MoveClause + '            REPLACE,
             STATS = 10,
             RECOVERY;';
 
