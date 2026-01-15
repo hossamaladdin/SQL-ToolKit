@@ -1,8 +1,9 @@
 $SqlFolder = "C:\Users\hossam"
 $ServerInstance = "localhost"
-$Database = "SafeYard"
+$Database = "MyDatabase"
 
-chcp 65001 | Out-Null
+# Import SqlServer module (install if needed: Install-Module -Name SqlServer)
+Import-Module SqlServer -ErrorAction SilentlyContinue
 
 $SqlFiles = Get-ChildItem $SqlFolder -Filter "*.sql"
 
@@ -10,47 +11,29 @@ foreach ($File in $SqlFiles) {
 
     Write-Host "Processing $($File.Name)..."
 
-    $CsvPath  = [System.IO.Path]::ChangeExtension($File.FullName, ".csv")
-    $TempSql  = Join-Path $env:TEMP $File.Name
-    $TempCsv  = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
+    $CsvPath = [System.IO.Path]::ChangeExtension($File.FullName, ".csv")
 
-@"
-SET NOCOUNT ON;
-$(Get-Content $File.FullName -Raw)
-"@ | Set-Content $TempSql -Encoding UTF8
+    try {
+        # Read the SQL query
+        $Query = Get-Content $File.FullName -Raw -Encoding UTF8
 
-    # 1️⃣ sqlcmd writes UTF-8 directly (NO PowerShell capture)
-    sqlcmd `
-        -S $ServerInstance `
-        -d $Database `
-        -E `
-        -W `
-        -s "," `
-        -h 1 `
-        -f 65001 `
-        -i $TempSql `
-        -o $TempCsv
+        # Execute query and get results as objects
+        $Results = Invoke-Sqlcmd `
+            -ServerInstance $ServerInstance `
+            -Database $Database `
+            -Query $Query `
+            -ErrorAction Stop
 
-    # 2️⃣ Clean headers + dashed lines (safe UTF-8 read)
-    $Lines  = Get-Content $TempCsv -Encoding UTF8
-    $Header = $null
-
-    $Clean = foreach ($Line in $Lines) {
-
-        if ($Line -match '^-{3,}') { continue }
-
-        if (-not $Header) {
-            $Header = $Line
-            $Line
-            continue
+        if ($Results) {
+            # Export to CSV with proper quoting and UTF-8 encoding
+            $Results | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
+            Write-Host "✓ Exported $($Results.Count) rows to $($File.Name -replace '\.sql$','.csv')" -ForegroundColor Green
         }
-
-        if ($Line -eq $Header) { continue }
-
-        $Line
+        else {
+            Write-Host "⚠ No results returned from $($File.Name)" -ForegroundColor Yellow
+        }
     }
-
-    $Clean | Out-File $CsvPath -Encoding utf8
-
-    Remove-Item $TempSql, $TempCsv -ErrorAction SilentlyContinue
+    catch {
+        Write-Host "✗ Error processing $($File.Name): $_" -ForegroundColor Red
+    }
 }
