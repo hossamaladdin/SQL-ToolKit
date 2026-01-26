@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Azure Bastion App Mode",
+  "version": "2.2",
+  "description": "Automatically opens Azure Bastion URLs in app mode with minimal borders",
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "permissions": ["tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://*.azure.com/*",
+    "https://portal.azure.com/*",
+    "https://bst-e021affb-8ee4-460a-be3f-f153e775d3cd.bastion.azure.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.azure.com/*",
+        "https://portal.azure.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}
