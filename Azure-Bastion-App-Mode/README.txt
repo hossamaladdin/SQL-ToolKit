@@ -1,10 +1,10 @@
-Azure Bastion App Mode Extension v2.1
+Azure Bastion App Mode Extension v2.3
 ======================================
 
-PERMANENT LOCATION:
-C:\Users\hossam.aladdin\Documents\Chrome Extensions\Azure-Bastion-App-Mode
+UNIVERSAL - WORKS WITH ALL AZURE SUBSCRIPTIONS AND BASTION INSTANCES!
 
-This extension automatically opens Azure Bastion URLs in popup windows with minimal borders.
+This extension automatically opens ALL Azure Bastion URLs in popup windows with minimal borders.
+No configuration needed - works with any Azure subscription, any Bastion instance.
 
 HOW IT WORKS:
 -------------
@@ -42,6 +42,8 @@ If it's not working:
 
 VERSION HISTORY:
 ----------------
+v2.3 - UNIVERSAL: Now works with ALL Azure Bastion instances (any subscription/account)
+v2.2 - Stable version with session preservation
 v2.1 - FIXED: Moves tab instead of recreating - preserves session/authentication
 v2.0 - Hybrid approach: background + content script for maximum compatibility
 v1.x - Previous versions (deprecated)

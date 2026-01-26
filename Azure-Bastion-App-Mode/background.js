@@ -1,5 +1,6 @@
 // Move Bastion tabs to popup windows (preserves session!)
-const BASTION_PATTERN = 'https://bst-e021affb-8ee4-460a-be3f-f153e775d3cd.bastion.azure.com/';
+// Universal pattern - matches ALL Azure Bastion instances
+const BASTION_REGEX = /^https:\/\/bst-[a-f0-9-]+\.bastion\.azure\.com\//i;
 
 let processingTabs = new Set();
 let movedTabs = new Set(); // Track tabs we've already moved
@@ -11,8 +12,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     return;
   }
 
-  // Only process Bastion URLs
-  if (!tab.url || !tab.url.startsWith(BASTION_PATTERN)) {
+  // Only process Bastion URLs (any Azure Bastion instance)
+  if (!tab.url || !BASTION_REGEX.test(tab.url)) {
     return;
   }
 
@@ -69,4 +70,4 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   processingTabs.delete(tabId);
 });
 
-console.log('Azure Bastion App Mode v2.2: Background script loaded');
+console.log('Azure Bastion App Mode v2.3 (Universal): Background script loaded');

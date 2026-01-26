@@ -2,16 +2,22 @@
 (function() {
   'use strict';
 
-  const BASTION_PATTERN = 'https://bst-e021affb-8ee4-460a-be3f-f153e775d3cd.bastion.azure.com/';
+  // Universal pattern - matches ALL Azure Bastion instances
+  const BASTION_REGEX = /^https:\/\/bst-[a-f0-9-]+\.bastion\.azure\.com\//i;
 
   console.log('🔵 Azure Bastion App Mode: Content script loaded on', window.location.href);
+
+  // Helper function to check if URL is a Bastion URL
+  function isBastionUrl(url) {
+    return url && (typeof url === 'string') && BASTION_REGEX.test(url);
+  }
 
   // Override window.open IMMEDIATELY before any other scripts run
   const originalOpen = window.open;
   window.open = function(url, target, features) {
     console.log('🔵 window.open called with URL:', url);
 
-    if (url && (typeof url === 'string') && url.startsWith(BASTION_PATTERN)) {
+    if (isBastionUrl(url)) {
       console.log('🟢 INTERCEPTED! Opening Bastion URL in popup:', url);
 
       const width = screen.availWidth;
@@ -43,7 +49,7 @@
     }
 
     // Check if it's a Bastion link
-    if (target && target.href && target.href.startsWith(BASTION_PATTERN)) {
+    if (target && target.href && isBastionUrl(target.href)) {
       console.log('🟢 INTERCEPTED CLICK! Bastion link:', target.href);
       e.preventDefault();
       e.stopPropagation();
