@@ -50,9 +50,11 @@ function Create-Icon {
     Write-Host "Created: $outputPath" -ForegroundColor Green
 }
 
-$extensionPath = $PSScriptRoot
+$extensionPath = Join-Path $PSScriptRoot "..\extension"
 
 Write-Host "Generating extension icons..." -ForegroundColor Cyan
+Write-Host "Output folder: $extensionPath" -ForegroundColor Gray
+Write-Host ""
 
 Create-Icon -size 16 -outputPath (Join-Path $extensionPath "icon16.png")
 Create-Icon -size 32 -outputPath (Join-Path $extensionPath "icon32.png")

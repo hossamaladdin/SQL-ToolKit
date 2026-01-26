@@ -4,8 +4,8 @@ Write-Host "Azure Bastion App Mode - Packager" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-$extensionPath = $PSScriptRoot
-$zipPath = Join-Path $extensionPath "..\Azure-Bastion-App-Mode.zip"
+$extensionPath = Join-Path $PSScriptRoot "..\extension"
+$zipPath = Join-Path $PSScriptRoot "..\..\Azure-Bastion-App-Mode.zip"
 
 # Check if icons exist
 $iconsExist = (Test-Path "$extensionPath\icon16.png") -and
