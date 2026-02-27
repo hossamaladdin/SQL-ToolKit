@@ -1,0 +1,3 @@
+bcp "select h.server,j.name JobName,h.step_name,h.run_date,h.run_time,h.run_duration,replace(replace(replace(h.message,char(10),' '),char(9),' '),char(13),' ') from msdb.dbo.sysjobhistory h join msdb.dbo.sysjobs j on h.job_id = j.job_id where run_status <> 1 order by run_date desc,run_time desc " queryout .\results\result1.csv  -S SQLCENTRALASSET\ASSET 				-T  -w
+
+cd .\results\ && copy result*.csv Final.csv && del result*.csv
