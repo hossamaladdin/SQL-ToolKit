@@ -1,0 +1,7 @@
+# never commit secrets
+*.ppk
+*.pem
+*.key
+id_rsa*
+*.pfx
+servers.txt
